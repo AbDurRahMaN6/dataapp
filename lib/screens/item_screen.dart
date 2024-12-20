@@ -24,6 +24,32 @@ class _QuotationScreenState extends State<QuotationScreen>
     _tabController = TabController(length: 2, vsync: this);
   }
 
+  void _addItem(QuotationViewModel viewModel) {
+    if (viewModel.itemController.text.isEmpty ||
+        viewModel.reasonController.text.isEmpty ||
+        viewModel.priceController.text.isEmpty ||
+        viewModel.qtyController.text.isEmpty ||
+        viewModel.discountController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('All fields must be filled'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    viewModel.addItem();
+    viewModel.clearFields();
+    FocusScope.of(context).unfocus();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Item added successfully'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final viewModel = Provider.of<QuotationViewModel>(context);
@@ -152,19 +178,9 @@ class _QuotationScreenState extends State<QuotationScreen>
                   unselectedLabelColor: const Color(0xFF4169E1),
                   unselectedLabelStyle:
                       const TextStyle(fontWeight: FontWeight.bold),
-                  tabs: [
-                    Tab(
-                      child: Container(
-                        alignment: Alignment.center,
-                        child: const Text('General'),
-                      ),
-                    ),
-                    Tab(
-                      child: Container(
-                        alignment: Alignment.center,
-                        child: const Text('Items'),
-                      ),
-                    ),
+                  tabs: const [
+                    Tab(child: Text('General')),
+                    Tab(child: Text('Items')),
                   ],
                 ),
               ),
@@ -237,11 +253,6 @@ class _QuotationScreenState extends State<QuotationScreen>
                                     const InputDecoration(labelText: 'Qty'),
                                 keyboardType: TextInputType.number,
                                 controller: viewModel.qtyController,
-                                onChanged: (value) {
-                                  if (value.isEmpty) {
-                                    viewModel.qtyController.text = '1';
-                                  }
-                                },
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -255,11 +266,7 @@ class _QuotationScreenState extends State<QuotationScreen>
                             ),
                             const SizedBox(width: 10),
                             ElevatedButton(
-                              onPressed: () {
-                                viewModel.addItem();
-                                FocusScope.of(context).unfocus();
-                                viewModel.clearFields();
-                              },
+                              onPressed: () => _addItem(viewModel),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF4169E1),
                               ),
@@ -270,45 +277,57 @@ class _QuotationScreenState extends State<QuotationScreen>
                         const SizedBox(height: 20),
                         Expanded(
                           child: SingleChildScrollView(
-                            child: Column(
-                              children: [
-                                DataTable(
-                                  headingRowColor:
-                                      MaterialStateProperty.all<Color>(
-                                          Colors.grey[200]!),
-                                  columns: const [
-                                    DataColumn(label: Text('Item')),
-                                    DataColumn(label: Text('Price')),
-                                    DataColumn(label: Text('Quantity')),
-                                    DataColumn(label: Text('Discount')),
-                                    DataColumn(label: Text('Total')),
-                                  ],
-                                  rows: viewModel
-                                      .getItemsForCurrentPage()
-                                      .map((item) {
-                                    double price = item['price'];
-                                    int quantity = item['qty'] ?? 1;
-                                    double discount = item['discount'];
-                                    double total = (price * quantity) *
-                                        (1 - (discount / 100));
-                                    return DataRow(cells: [
-                                      DataCell(Text(item['item'])),
-                                      DataCell(Text(item['price'].toString())),
-                                      DataCell(Text(item['qty'].toString())),
-                                      DataCell(
-                                          Text(item['discount'].toString())),
-                                      DataCell(Text(total.toString())),
-                                    ]);
-                                  }).toList(),
-                                ),
+                            scrollDirection: Axis.horizontal,
+                            child: DataTable(
+                              headingRowColor: MaterialStateProperty.all<Color>(
+                                  Colors.grey[200]!),
+                              columns: const [
+                                DataColumn(label: Text('Item')),
+                                DataColumn(label: Text('Price')),
+                                DataColumn(label: Text('Quantity')),
+                                DataColumn(label: Text('Discount')),
+                                DataColumn(label: Text('Total')),
                               ],
+                              rows: List.generate(
+                                  viewModel.getItemsForCurrentPage().length,
+                                  (index) {
+                                var item =
+                                    viewModel.getItemsForCurrentPage()[index];
+                                double price = item['price'];
+                                int quantity = item['qty'] ?? 1;
+                                double discount = item['discount'];
+                                double total =
+                                    (price * quantity) * (1 - (discount / 100));
+                                return DataRow(cells: [
+                                  DataCell(Text(item['item'])),
+                                  DataCell(Text(price.toString())),
+                                  DataCell(Text(quantity.toString())),
+                                  DataCell(Text(discount.toString())),
+                                  DataCell(Text(total.toStringAsFixed(2))),
+                                ]);
+                              }),
                             ),
                           ),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back),
+                              onPressed: viewModel.previousPage,
+                            ),
+                            Text(
+                                'Page ${viewModel.currentPage + 1} of ${viewModel.totalPages}'),
+                            IconButton(
+                              icon: const Icon(Icons.arrow_forward),
+                              onPressed: viewModel.nextPage,
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  const Center(child: Text('Other Content')),
+                  const Center(child: Text('Items Tab Content')),
                 ],
               ),
             ),

@@ -1,51 +1,60 @@
 import 'package:flutter/material.dart';
 
-class QuotationViewModel with ChangeNotifier {
+class QuotationViewModel extends ChangeNotifier {
   final TextEditingController itemController = TextEditingController();
+  final TextEditingController reasonController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
-  TextEditingController reasonController = TextEditingController();
   final TextEditingController qtyController = TextEditingController();
   final TextEditingController discountController = TextEditingController();
 
-  List<Map<String, dynamic>> items = [];
-  int currentPage = 1;
-  int itemsPerPage = 5;
+  final List<Map<String, dynamic>> _items = [];
+
+  int _currentPage = 0;
+  final int _itemsPerPage = 2;
+
+  int get currentPage => _currentPage;
+
+  int get totalPages {
+    if (_items.isEmpty) return 0;
+    return (_items.length / _itemsPerPage).ceil();
+  }
+
+  List<Map<String, dynamic>> getItemsForCurrentPage() {
+    int start = _currentPage * _itemsPerPage;
+    int end = start + _itemsPerPage;
+    if (end > _items.length) end = _items.length;
+    return _items.sublist(start, end);
+  }
 
   void addItem() {
-    final item = {
+    _items.add({
       'item': itemController.text,
+      'reason': reasonController.text,
       'price': double.tryParse(priceController.text) ?? 0.0,
       'qty': int.tryParse(qtyController.text) ?? 1,
       'discount': double.tryParse(discountController.text) ?? 0.0,
-    };
-    items.add(item);
+    });
     notifyListeners();
   }
 
   void clearFields() {
     itemController.clear();
+    reasonController.clear();
     priceController.clear();
     qtyController.clear();
     discountController.clear();
-    reasonController.clear();
-  }
-
-  List<Map<String, dynamic>> getItemsForCurrentPage() {
-    final start = (currentPage - 1) * itemsPerPage;
-    final end = start + itemsPerPage;
-    return items.sublist(start, end > items.length ? items.length : end);
   }
 
   void nextPage() {
-    if (currentPage * itemsPerPage < items.length) {
-      currentPage++;
+    if (_currentPage < totalPages - 1) {
+      _currentPage++;
       notifyListeners();
     }
   }
 
   void previousPage() {
-    if (currentPage > 1) {
-      currentPage--;
+    if (_currentPage > 0) {
+      _currentPage--;
       notifyListeners();
     }
   }
